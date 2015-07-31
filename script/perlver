@@ -49,6 +49,7 @@ use Params::Util           '_INSTANCE';
 use File::Find::Rule       ();
 use File::Find::Rule::Perl ();
 use Perl::MinimumVersion   'PMV';
+use Perl6::Form;
 
 # Define prototypes
 sub verbose        ($);
@@ -165,7 +166,7 @@ sub summary {
 	my $pmv_total    = PMV->_max( $pmv_explicit, $pmv_syntax );
 
 	# Generate the output values
-	my @outputs = ( [ 'file', 'explicit', 'syntax', 'external' ] );
+	my @outputs = ();
 	foreach my $result ( @results ) {
 		my $output = [];
 		$output->[0] = $result->[0];
@@ -177,57 +178,50 @@ sub summary {
 		push @outputs, $output;
 	}
 
-	# Complete the output preperation work
+	# Complete the output preparation work
 	$pmv_explicit     = format_version( $pmv_explicit );
 	$pmv_syntax       = format_version( $pmv_syntax   );
 	$pmv_total        = format_version( $pmv_total    );
 	if ( $pmv_total eq '~' ) {
 		$pmv_total = format_version( qv(5.004) ) . ' (default)';
 	}
-	my $len0          = List::Util::max map { length $_->[0] } @outputs;
-	my $len1          = List::Util::max map { length $_->[1] } @outputs;
-	my $len2          = List::Util::max map { length $_->[2] } @outputs;
-	my $len3          = List::Util::max map { length $_->[3] } @outputs;
-	my $len_all       = $len0 + $len1 + $len2 + $len3 + 9;
-	my $len_totals    = $len1 + $len2 + $len3 + 6;
-	my $line_format   = " | %-${len0}s | %-${len1}s | %-${len2}s | %-${len3}s |\n";
-	if ($EXPLAIN) {
-	  chomp($line_format);
-	  $line_format.="  (%s)\n";
-	}
-	my $spacer        = '-' x $len_all;
-	my $error_message = "ERROR DETECTED : ACTUAL DEPENDENCY HIGHER THAN SPECIFIED";
-	my $error_length  = length $error_message;
-	if ( $error_length > $len_all ) {
-		my $diff = $error_length - $len_all;
-		$len_all += $diff;
-		$len0    += $diff;
-	}
 
-	# Prepare formatting parts
-	my $divider = " | $spacer |\n";
-	my $capline = "   $spacer  \n";
-	my $rowline = " | %-${len_all}s |\n";
+	my $error_message = "ERROR DETECTED : ACTUAL DEPENDENCY HIGHER THAN SPECIFIED";
+	my $error_details = "DETAILS        : perlver --blame $target";
 
 	# Print the results
-	print "\n";
-	print $capline;
-	printf( $line_format, @{shift(@outputs)} );
-	print $divider;
+	print form
+'  -------------------------------------------+----------+----------+---------- ',
+' | File                                      | Explicit | Syntax   | External |',
+' |-------------------------------------------+----------+----------+----------|',
+	;
 	foreach my $result ( @outputs ) {
-		printf( $line_format, @$result );
+		print form
+' | {[[[[[{41}[[[[[} | {[[{8}]]} | {[[{8}]]} | {[[{8}]]} |',
+    $result->[0],$result->[1], $result->[2], $result->[3];
 	}
-	print $divider;
-	printf( $rowline, "Minimum explicit version : $pmv_explicit" );
-	printf( $rowline, "Minimum syntax version   : $pmv_syntax"   );
-	printf( $rowline, "Minimum version of perl  : $pmv_total"    );
+		print form
+'  -------------------------------------------+----------+----------+---------- ',
+' | Minimum explicit version : {[[{8}]]}                                        |',
+                               $pmv_explicit,
+' | Minimum syntax version   : {[[{8}]]}                                        |',
+                               $pmv_syntax,
+' | Minimum version of Perl  : {[[{8}]]}                                        |',
+                               $pmv_total;
 	if ( $pmv_bug ) {
-		print $divider;
-		printf( $rowline, "ERROR   : ACTUAL DEPENDENCY HIGHER THAN SPECIFIED" );
-		printf( $rowline, "DETAILS : perlver --blame $target" );
+		print form
+'  -------------------------------------------+----------+----------+---------- ',
+' | {[[{74}]]} |',
+    $error_message,
+' | {[[{74}]]} |',
+    $error_details,
+'  ---------------------------------------------------------------------------- ',
+;
 	}
-	print $capline;
-	print "\n";
+	else {
+		print form
+		'  ---------------------------------------------------------------------------- ';
+	}
 }
 
 sub blame {
