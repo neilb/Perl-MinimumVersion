@@ -121,7 +121,7 @@ BEGIN {
 		_postfix_foreach        => version->new('5.004.05'),
 	);
 	@CHECKS_RV = ( #subs that return version
-	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
+	    '_feature_bundle','_regex','_each_argument', '_listop_argument', '_binmode_2_arg',
         '_scheduled_blocks',
 	);
 
@@ -697,6 +697,34 @@ sub _each_argument {
 			}
 		}
 		return 1 if ($version and $version == 5.014);
+		return '';
+	} );
+	return (defined($version)?"$version":undef, $obj);
+}
+
+sub _listop_argument {
+    my ($version, $obj);
+	shift->Document->find( sub {
+		$_[1]->isa('PPI::Token::Word') or return '';
+		$_[1]->content =~ '^(push|shift|pop|unshift|splice)$'  or return '';
+		return '' if is_method_call($_[1]);
+		my $next = $_[1]->snext_sibling;
+		$next = $next->schild(0)->schild(0) if $next->isa('PPI::Structure::List');
+		if($next->isa('PPI::Token::Cast')) {
+			if($next->content eq '$' && 5.014 > ($version || 0)) {
+				$version = 5.014;
+				return 1;
+			}
+		} elsif($next->isa('PPI::Token::Symbol')) {
+			if($next->raw_type eq '$' && 5.014 > ($version || 0)) {
+				$version = 5.014;
+				return 1;
+			}
+		} elsif($next->isa('PPI::Token::Operator')) { # % $a
+			return '';
+		} elsif($_[1]->parent->isa('PPI::Statement::Sub')) { # sub push|shift|pop|unshift
+			return '';
+		}
 		return '';
 	} );
 	return (defined($version)?"$version":undef, $obj);
