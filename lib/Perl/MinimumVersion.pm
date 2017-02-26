@@ -587,6 +587,7 @@ my %feature =
     'array_base'        => '5.16', #defined only in 5.16
     'fc'                => '5.16',
     'lexical_subs'      => '5.18',
+    'signatures'        => '5.20',
 );
 my $feature_regexp = join('|', keys %feature);
 
