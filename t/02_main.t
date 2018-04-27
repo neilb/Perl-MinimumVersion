@@ -8,7 +8,7 @@ BEGIN {
 	$^W = 1;
 }
 
-use Test::More 0.47 tests => 116;
+use Test::More 0.47 tests => 109;
 use version 0.76;
 use File::Spec::Functions ':ALL';
 use PPI 1.215;
@@ -107,7 +107,7 @@ SCOPE: {
 }
 
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.004', 'Hello World matches expected version' );
+my $v = version_is( <<'END_PERL', '5.005', 'Hello World matches expected version' );
 print "Hello World!\n";
 END_PERL
 is( $v->_any_our_variables, '', '->_any_our_variables returns false' );
@@ -178,7 +178,7 @@ END_PERL
 
 # Check regular use of constants
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.004', 'normal constant use has no dep' );
+my $v = version_is( <<'END_PERL', '5.005', 'normal constant use has no dep' );
 use constant FOO => 1;
 1;
 END_PERL
@@ -206,14 +206,6 @@ my $v = version_is( <<'END_PERL', '5.008', 'Localized soft reference matched exp
 local ${ "${class}::DIE" } = 1;
 END_PERL
 ok( $v->_local_soft_reference, '->_local_soft_reference returns true' );
-}
-
-# Check variables added in 5.5
-SCOPE: {
-my $v = version_is( <<'END_PERL', '5.005', 'variables added in 5.5' );
-$! + $^R;
-END_PERL
-ok( $v->_5005_variables, '->_5005_variables returns true' );
 }
 
 
@@ -289,11 +281,6 @@ s/\Fa//;
 END_PERL
 }
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.004', '/c regex modifier' );
-s//c;
-END_PERL
-}
-SCOPE: {
 my $v = version_is( <<'END_PERL', '5.015008', '\F and use feature' );
 use feature ':5.10';
 s/\Fa//;
@@ -342,18 +329,18 @@ for my $i (map { $_ * 2 } 0 .. $#result / 2) {
 
 #check _checks2skip
 SCOPE: {
-my $doc = PPI::Document->new(\'our $x;s/a//u;$^R;');
+my $doc = PPI::Document->new(\'our $x;s/a//u;');
 my $minver = Perl::MinimumVersion->new($doc);
 $minver->_set_checks2skip([qw/_any_our_variables _regex/]);
 is(
   $minver->minimum_syntax_version,
-  '5.005',
+  '',
   "5.6 checks not run when _checks2skip was used",
 );
 }
 #check _checks2skip
 SCOPE: {
-my $doc = PPI::Document->new(\'our $x;s/a//u;$^R;');
+my $doc = PPI::Document->new(\'our $x;s/a//u;');
 my $minver = Perl::MinimumVersion->new($doc);
 $minver->_set_collect_all_reasons();
 like(
@@ -363,8 +350,8 @@ like(
 );
 is(
   scalar(@{ $minver->{_all_reasons} }),
-  3,
-  "3 checks met",
+  2,
+  "2 checks met",
 );
 }
 

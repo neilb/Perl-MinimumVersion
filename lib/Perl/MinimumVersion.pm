@@ -23,7 +23,7 @@ version of perl required to be able to run it. Because it is based on
 L<PPI>, it can do this without having to actually load the code.
 
 Currently it tests both the syntax of your code, and the use of explicit
-version dependencies such as C<require 5.005>.
+version dependencies such as C<require 5.006>.
 
 Future plans are to also add support for tracing module dependencies.
 
@@ -106,17 +106,6 @@ BEGIN {
 		_mkdir_1_arg            => version->new('5.006'),
 		_exists_subr            => version->new('5.006'),
 		_sort_subref            => version->new('5.006'),
-
-		_any_qr_tokens          => version->new('5.005.03'),
-		_perl_5005_pragmas      => version->new('5.005'),
-		_perl_5005_modules      => version->new('5.005'),
-		_any_tied_arrays        => version->new('5.005'),
-		_any_quotelike_regexp   => version->new('5.005'),
-		_any_INIT_blocks        => version->new('5.005'),
-		_substr_4_arg           => version->new('5.005'),
-		_splice_negative_length => version->new('5.005'),
-		_5005_variables         => version->new('5.005'),
-		_bareword_double_colon  => version->new('5.005'),
 	);
 	@CHECKS_RV = ( #subs that return version
 	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
@@ -156,11 +145,6 @@ BEGIN {
 			charnames            => 1,
 			bytes                => 1,
 		},
-		_perl_5005_pragmas => {
-			re     => 1,
-			fields => 1, # can be installed from CPAN, with base.pm
-			attr   => 1,
-		},
 	);
 }
 
@@ -193,7 +177,7 @@ Returns a new C<Perl::MinimumVersion> object, or C<undef> on error.
 sub new {
 	my $class    = ref $_[0] ? ref shift : shift;
 	my $Document = _Document(shift) or return undef;
-	my $default  = _INSTANCE(shift, 'version') || version->new('5.004');
+	my $default  = _INSTANCE(shift, 'version') || version->new('5.005');
 
 	# Create the object
 	my $self = bless {
@@ -1162,62 +1146,6 @@ sub _any_CHECK_blocks {
 	} );
 }
 
-sub _any_qr_tokens {
-	shift->Document->find_first( 'Token::QuoteLike::Regexp' );
-}
-
-sub _perl_5005_pragmas {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		$MATCHES{_perl_5005_pragmas}->{$_[1]->pragma}
-	} );
-}
-
-# A number of modules are highly indicative of using techniques
-# that are themselves version-dependent.
-sub _perl_5005_modules {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		$_[1]->module
-		and (
-			$_[1]->module eq 'Tie::Array'
-			or
-			($_[1]->module =~ /\bException\b/ and
-				$_[1]->module !~ /^(?:CPAN)::/)
-			or
-			$_[1]->module =~ /\bThread\b/
-			or
-			$_[1]->module =~ /^Error\b/
-			or
-			$_[1]->module eq 'base'
-			or
-			$_[1]->module eq 'Errno'
-		)
-	} );
-}
-
-sub _any_tied_arrays {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Sub')
-		and
-		$_[1]->name eq 'TIEARRAY'
-	} )
-}
-
-sub _any_quotelike_regexp {
-	shift->Document->find_first( 'Token::QuoteLike::Regexp' );
-}
-
-sub _any_INIT_blocks {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Scheduled')
-		and
-		$_[1]->type eq 'INIT'
-	} );
-}
-
 # You can't localize a soft reference
 sub _local_soft_reference {
 	shift->Document->find_first( sub {
@@ -1272,24 +1200,6 @@ sub _three_argument_open {
 	} );
 }
 
-sub _substr_4_arg {
-	shift->Document->find_first( sub {
-		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'substr'     or return '';
-		return '' if is_hash_key($main_element);
-		return '' if is_method_call($main_element);
-		return '' if is_subroutine_name($main_element);
-		return '' if is_included_module_name($main_element);
-		return '' if is_package_declaration($main_element);
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments > 3 ) {
-			return 1;
-		}
-		return '';
-	} );
-}
-
 sub _mkdir_1_arg {
 	shift->Document->find_first( sub {
 		my $main_element=$_[1];
@@ -1306,37 +1216,6 @@ sub _mkdir_1_arg {
 		}
 		return '';
 	} );
-}
-
-sub _splice_negative_length {
-	shift->Document->find_first( sub {
-		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'splice'     or return '';
-		return '' if is_hash_key($main_element);
-		return '' if is_method_call($main_element);
-		return '' if is_subroutine_name($main_element);
-		return '' if is_included_module_name($main_element);
-		return '' if is_package_declaration($main_element);
-
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments < 3 ) {
-			return '';
-		}
-		my $arg=$arguments[2];
-		if (ref($arg) eq 'ARRAY') {
-		  $arg=$arg->[0];
-		}
-		if ($arg->isa('PPI::Token::Number')) {
-			if ($arg->literal<0) {
-				return 1;
-			} else {
-				return '';
-			}
-		}
-		return '';
-	} );
-
 }
 
 # weak references require perl 5.6
@@ -1364,25 +1243,6 @@ sub _weaken {
 		)
 	} );
 }
-
-sub _5005_variables {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Magic')
-		and
-		($_[1]->symbol eq '$!' or $_[1]->symbol eq '$^R')
-	} );
-}
-
-#added in 5.5
-sub _bareword_double_colon {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Word')
-		and
-		$_[1]->content =~ /::$/
-	} );
-}
-
-
 
 #####################################################################
 # Support Functions
