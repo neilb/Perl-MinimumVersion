@@ -117,8 +117,6 @@ BEGIN {
 		_splice_negative_length => version->new('5.005'),
 		_5005_variables         => version->new('5.005'),
 		_bareword_double_colon  => version->new('5.005'),
-
-		_postfix_foreach        => version->new('5.004.05'),
 	);
 	@CHECKS_RV = ( #subs that return version
 	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
@@ -1339,23 +1337,6 @@ sub _splice_negative_length {
 		return '';
 	} );
 
-}
-
-sub _postfix_foreach {
-	shift->Document->find_first( sub {
-		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'foreach'    or return '';
-		return '' if is_hash_key($main_element);
-		return '' if is_method_call($main_element);
-		return '' if is_subroutine_name($main_element);
-		return '' if is_included_module_name($main_element);
-		return '' if is_package_declaration($main_element);
-		my $stmnt = $main_element->statement();
-		return '' if !$stmnt;
-		return '' if $stmnt->isa('PPI::Statement::Compound');
-		return 1;
-	} );
 }
 
 # weak references require perl 5.6
