@@ -23,7 +23,7 @@ version of perl required to be able to run it. Because it is based on
 L<PPI>, it can do this without having to actually load the code.
 
 Currently it tests both the syntax of your code, and the use of explicit
-version dependencies such as C<require 5.006>.
+version dependencies such as C<require 5.008>.
 
 Future plans are to also add support for tracing module dependencies.
 
@@ -93,19 +93,6 @@ BEGIN {
 
 		# Included in 5.6. Broken until 5.8
 		_pragma_utf8            => version->new('5.008'),
-
-		_perl_5006_pragmas      => version->new('5.006'),
-		_any_our_variables      => version->new('5.006'),
-		_any_binary_literals    => version->new('5.006'),
-		_any_version_literals   => version->new('5.006'), #v-string
-		_magic_version          => version->new('5.006'),
-		_any_attributes         => version->new('5.006'),
-		_any_CHECK_blocks       => version->new('5.006'),
-		_three_argument_open    => version->new('5.006'),
-		_weaken                 => version->new('5.006'),
-		_mkdir_1_arg            => version->new('5.006'),
-		_exists_subr            => version->new('5.006'),
-		_sort_subref            => version->new('5.006'),
 	);
 	@CHECKS_RV = ( #subs that return version
 	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
@@ -135,15 +122,6 @@ BEGIN {
 			'threads::shared' => 1,
 			sort              => 1,
 			encoding          => 1,
-		},
-		_perl_5006_pragmas => {
-			warnings             => 1, #may be ported into older version
-			'warnings::register' => 1,
-			attributes           => 1,
-			open                 => 1,
-			filetest             => 1,
-			charnames            => 1,
-			bytes                => 1,
 		},
 	);
 }
@@ -177,7 +155,7 @@ Returns a new C<Perl::MinimumVersion> object, or C<undef> on error.
 sub new {
 	my $class    = ref $_[0] ? ref shift : shift;
 	my $Document = _Document(shift) or return undef;
-	my $default  = _INSTANCE(shift, 'version') || version->new('5.005');
+	my $default  = _INSTANCE(shift, 'version') || version->new('5.006');
 
 	# Create the object
 	my $self = bless {
@@ -830,24 +808,6 @@ sub _perl_5012_pragmas {
 	} );
 }
 
-sub _sort_subref {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Word') or return '';
-		$_[1]->content eq 'sort' or return '';
-		is_function_call($_[1]) or return '';
-		my $e1 = $_[1]->next_sibling;
-		$e1->isa('PPI::Token::Whitespace') or return '';
-		$e1 = $e1->next_sibling;
-		_get_resulting_sigil($e1) || '' eq '$' or return '';
-		$e1 = $e1->next_sibling;
-		$e1->isa('PPI::Token::Whitespace') or return '';
-		$e1 = $e1->next_sibling;
-		$e1->isa('PPI::Token::Word') or $e1->isa('PPI::Token::Symbol')
-			or $e1->isa('PPI::Token::Cast') or $e1->isa('PPI::Structure::List') or return '';
-		return 1;
-	} );
-}
-
 sub _open_temp {
 	shift->Document->find_first( sub {
 		$_[1]->isa('PPI::Statement') or return '';
@@ -884,23 +844,6 @@ sub _open_scalar {
 		}
 		return '';
 	} );
-}
-
-# exists(&subr) new in 5.6.0 #
-sub _exists_subr {
-	my ($pmv) = @_;
-	$pmv->Document->find_first(sub {
-		my ($document, $elem) = @_;
-		if ($elem->isa('PPI::Token::Word')
-			&& $elem eq 'exists'
-			&& is_function_call($elem)
-			&& ($elem = first_arg($elem))
-			&& (_get_resulting_sigil($elem) || '') eq '&') {
-				return 1;
-		} else {
-			return 0;
-		}
-	});
 }
 
 sub _get_resulting_sigil {
@@ -1097,55 +1040,6 @@ sub _constant_hash {
 	} );
 }
 
-sub _perl_5006_pragmas {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		$MATCHES{_perl_5006_pragmas}->{$_[1]->pragma}
-	} );
-}
-
-sub _any_our_variables {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Variable')
-		and
-		$_[1]->type eq 'our'
-	} );
-}
-
-sub _any_binary_literals {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Number::Binary')
-	} );
-}
-
-sub _any_version_literals {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Number::Version')
-	} );
-}
-
-
-sub _magic_version {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Magic')
-		and
-		$_[1]->symbol eq '$^V'
-	} );
-}
-
-sub _any_attributes {
-	shift->Document->find_first( 'Token::Attribute' );
-}
-
-sub _any_CHECK_blocks {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Scheduled')
-		and
-		$_[1]->type eq 'CHECK'
-	} );
-}
-
 # You can't localize a soft reference
 sub _local_soft_reference {
 	shift->Document->find_first( sub {
@@ -1181,66 +1075,6 @@ sub _use_carp_version {
 
 		my $version = $_[1]->module_version;
 		return !! ( defined $version and length "$version" );
-	} );
-}
-
-sub _three_argument_open {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement') or return '';
-		my @children = $_[1]->children;
-		#@children >= 7                or return '';
-		my $main_element = $children[0];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'open'       or return '';
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments > 2 ) {
-			return 1;
-		}
-		return '';
-	} );
-}
-
-sub _mkdir_1_arg {
-	shift->Document->find_first( sub {
-		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'mkdir'       or return '';
-		return '' if is_hash_key($main_element);
-		return '' if is_method_call($main_element);
-		return '' if is_subroutine_name($main_element);
-		return '' if is_included_module_name($main_element);
-		return '' if is_package_declaration($main_element);
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments != 2 ) {
-			return 1;
-		}
-		return '';
-	} );
-}
-
-# weak references require perl 5.6
-# will not work in case of importing several
-sub _weaken {
-	shift->Document->find_first( sub {
-		(
-			$_[1]->isa('PPI::Statement::Include')
-			and
-			$_[1]->module eq 'Scalar::Util'
-			and
-			$_[1]->content =~ /[^:]\b(?:weaken|isweak)\b[^:]/
-		)
-		or
-		(
-			$_[1]->isa('PPI::Token::Word')
-			and
-			(
-				$_[1]->content eq 'Scalar::Util::isweak'
-				or
-				$_[1]->content eq 'Scalar::Util::weaken'
-			)
-			#and
-			#is_function_call($_[1])
-		)
 	} );
 }
 
