@@ -50,7 +50,7 @@ use Exporter                    ();
 use List::Util          1.20    qw(max first);
 use Params::Util        0.25    ('_INSTANCE', '_CLASS');
 use PPI::Util                   ('_Document');
-use PPI                 1.215   ();
+use PPI                 1.238   ();
 use PPIx::Utils                 qw{
 	:classification
 	:traversal
@@ -907,82 +907,47 @@ sub _heredoc_indent {
 	});
 }
 
-# Postfix dereference new (and experimental) in 5.20.
+# Postfix dereference new (and experimental) in 5.20, mainstream in 5.24.
+# THIS CODE ASSUMES PPI 1.237_001 OR ABOVE -- i.e. support for postfix
+# dereferencing.
+#
+my %postfix_deref = (
+	'$*'	=> \&_postfix_deref_entire,
+	'@*'	=> \&_postfix_deref_entire,
+	'$#*'	=> \&_postfix_deref_entire,
+	'%*'	=> \&_postfix_deref_entire,
+	'&*'	=> \&_postfix_deref_entire,
+	'**'	=> \&_postfix_deref_entire,
+	'@'	=> \&_postfix_deref_slice,
+	'%'	=> \&_postfix_deref_slice,
+);
+
+sub _postfix_deref_slice {
+	my ( $elem ) = @_;
+	my $next = $elem->snext_sibling()
+		or return;
+	return $next->isa( 'PPI::Structure::Subscript' );
+}
+
+sub _postfix_deref_entire {
+	return 1;
+}
+
 sub _postfix_deref {
 	shift->Document->find_first( sub {
 		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Symbol') or return '';
-		(_get_resulting_sigil($main_element) || '') eq '$'
+		$main_element->isa('PPI::Token::Cast') or return '';
+		my $prev = $main_element->sprevious_sibling()
 			or return '';
-		my $operator = $main_element->snext_sibling()
+		return '' unless $prev->isa('PPI::Token::Operator') &&
+			$prev->content() eq '->';
+		$prev = $prev->sprevious_sibling()
 			or return '';
-		return '' unless
-			$operator->isa( 'PPI::Token::Operator' ) &&
-			$operator->content() eq '->';
-		my $next = $operator->snext_sibling()
+		return '' unless $prev->isa('PPI::Token::Symbol') &&
+			(_get_resulting_sigil($prev) || '') eq '$';
+		my $code = $postfix_deref{ $main_element->content() }
 			or return '';
-		my $content = $next->content();
-		# FIXME: The below Byzantine mess could be considerably
-		# simplified if we could rely on a PPI that supported
-		# postfix dereferencing. My read of PPI's Changes file
-		# says this is 1.238, which is considerably ahead of
-		# Perl-MinimumVersion's requirement of PPI 1.215. -- trwyant
-		foreach my $check (
-			sub {
-				return '' unless $_[0]->isa( 'PPI::Token::Cast' );
-				# $*, @*, , etc, modern parse
-				{ '$*' => 1, '@*', => 1, '%*' => 1, '&*' => 1, '**' => 1, '$#*' => 1, }->{$_[1]}
-				    and return 1;
-				my $next = $_[0]->snext_sibling()
-					or return '';
-				if ( $next->isa( 'PPI::Structure::Subscript' ) ) {
-				    # @[...], etc, modern parse
-				    return { '@' => 1, '%' => 1 }->{$_[1]};
-				} elsif ( $next->isa( 'PPI::Structure::Constructor' ) ) {
-					# @[...], @{...}, %[...], %{...}
-					# NOTE it would be nice if all the above in
-					# fact came through here. But actually only
-					# @[...] does -- the rest are defensive code
-					# in case PPI's parse changes.
-					return { '@' => 1, '%' => 1 }->{$_[1]};
-				} elsif ( $next->isa( 'PPI::Structure::Block' ) ) {
-					# @{...}, %{...} with PPI 1.236
-					return { '@' => 1, '%' => 1 }->{$_[1]};
-				} elsif ( $next->isa( 'PPI::Token::Operator' ) &&
-					$next->content() eq '*' ) {
-					# %*, &*
-					return { '%' => 1, '&' => 1 }->{$_[1]};
-				}
-				return '';
-			},
-			sub {	# $*, @*
-				$_[0]->isa( 'PPI::Token::Magic' ) &&
-					{ '$*' => 1, '@*' => 1 }->{$_[1]}
-			},
-			sub {
-				return '' unless $_[0]->isa( 'PPI::Token::Operator' );
-				# %[...] with PPI 1.236
-				if ( $_[1] eq '%' ) {
-					my $next = $_[0]->snext_sibling()
-					    or return '';
-					return $next->isa( 'PPI::Structure::Constructor' );
-				}
-				# **
-				return $_[1] eq '**';
-			},
-			sub {	# $#*
-				return '' unless $_[0]->isa( 'PPI::Token::Magic' ) &&
-					$_[1] eq '$#';
-				my $next = $_[0]->snext_sibling()
-					or return '';
-				return $next->isa( 'PPI::Token::Operator' ) &&
-					$next->content() eq '*';
-			},
-		) {
-			return 1 if $check->( $next, $content );
-		}
-
-		return '';
+		return $code->( $main_element ) || '';
 	} );
 }
 
