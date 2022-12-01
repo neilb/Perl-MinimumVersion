@@ -66,6 +66,8 @@ BEGIN {
 
 	# The primary list of version checks
 	%CHECKS = (
+		_heredoc_indent         => version->new('5.025.007'),
+
         # _stacked_labels         => version->new('5.014'),
 
 		_yada_yada_yada         => version->new('5.012'),
@@ -932,6 +934,14 @@ sub _get_resulting_sigil {
 	}
 }
 
+sub _heredoc_indent {
+	shift->Document->find_first( sub {
+		my $main_element = $_[1];
+		$main_element->isa('PPI::Token::HereDoc') or return '';
+		$main_element->content =~ /^\Q<<~\E/ or return '';
+		return 1;
+	});
+}
 
 sub _postfix_when {
 	shift->Document->find_first( sub {
