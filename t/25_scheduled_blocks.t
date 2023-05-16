@@ -9,9 +9,9 @@ use Test::More 0.47;
 use Perl::MinimumVersion;
 
 my %examples=(
-    q/ BEGIN { } /              => '5.006',
-    q/ INIT { }  /              => '5.006',
-    q/ CHECK { }  /             => '5.006002',
+    q/ BEGIN { } /              => '5.008',
+    q/ INIT { }  /              => '5.008',
+    q/ CHECK { }  /             => '5.008',
     q/ UNITCHECK { }  /         => '5.010',
 );
 

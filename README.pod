@@ -70,8 +70,8 @@ Returns a L<version> object, or C<undef> on error.
 The C<minimum_explicit_version> method checks through Perl code for the
 use of explicit version dependencies such as.
 
-  use 5.006;
-  require 5.005_03;
+  use 5.008;
+  require 5.010;
 
 Although there is almost always only one of these in a file, if more than
 one are found, the highest version dependency will be returned.
@@ -87,15 +87,15 @@ that this is possible.
 
 It takes an optional parameter of a L<version> object defining
 the lowest known current value. For example, if it is already known
-that it must be 5.006 or higher, then you can provide a param of
-qv(5.006) and the method will not run any of the tests below this
+that it must be 5.008 or higher, then you can provide a param of
+qv(5.008) and the method will not run any of the tests below this
 version. This should provide dramatic speed improvements for
 large and/or complex documents.
 
 The limitations of parsing Perl mean that this method may provide
 artificially low results, but should not artificially high results.
 
-For example, if C<minimum_syntax_version> returned 5.006, you can be
+For example, if C<minimum_syntax_version> returned 5.008, you can be
 confident it will not run on anything lower, although there is a chance
 that during actual execution it may use some untestable feature that
 creates a dependency on a higher version.

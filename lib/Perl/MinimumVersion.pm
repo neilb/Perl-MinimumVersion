@@ -78,24 +78,9 @@ BEGIN {
 		_perl_5010_operators    => version->new('5.010'),
 		_perl_5010_magic        => version->new('5.010'),
 		_state_declaration      => version->new('5.010'),
-
-		# Various small things
-		_bugfix_magic_errno     => version->new('5.008.003'),
-		_is_utf8                => version->new('5.008.001'),
-		_unquoted_versions      => version->new('5.008.001'),
-		_perl_5008_pragmas      => version->new('5.008'),
-		_constant_hash          => version->new('5.008'),
-		_local_soft_reference   => version->new('5.008'),
-		_use_carp_version       => version->new('5.008'),
-		_open_temp              => version->new('5.008'),
-		_open_scalar            => version->new('5.008'),
-		_internals_svreadonly   => version->new('5.008'),
-
-		# Included in 5.6. Broken until 5.8
-		_pragma_utf8            => version->new('5.008'),
 	);
 	@CHECKS_RV = ( #subs that return version
-	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
+	    '_feature_bundle','_regex','_each_argument',,
         '_scheduled_blocks', '_experimental_bundle'
 	);
 
@@ -116,12 +101,6 @@ BEGIN {
 		_perl_5010_magic => {
 			'%+' => 1,
 			'%-' => 1,
-		},
-		_perl_5008_pragmas => {
-			threads           => 1,
-			'threads::shared' => 1,
-			sort              => 1,
-			encoding          => 1,
 		},
 	);
 }
@@ -155,7 +134,7 @@ Returns a new C<Perl::MinimumVersion> object, or C<undef> on error.
 sub new {
 	my $class    = ref $_[0] ? ref shift : shift;
 	my $Document = _Document(shift) or return undef;
-	my $default  = _INSTANCE(shift, 'version') || version->new('5.006');
+	my $default  = _INSTANCE(shift, 'version') || version->new('5.008');
 
 	# Create the object
 	my $self = bless {
@@ -267,8 +246,8 @@ sub default_reason {
 The C<minimum_explicit_version> method checks through Perl code for the
 use of explicit version dependencies such as.
 
-  use 5.006;
-  require 5.005_03;
+  use 5.008;
+  require 5.010;
 
 Although there is almost always only one of these in a file, if more than
 one are found, the highest version dependency will be returned.
@@ -329,15 +308,15 @@ that this is possible.
 
 It takes an optional parameter of a L<version> object defining
 the lowest known current value. For example, if it is already known
-that it must be 5.006 or higher, then you can provide a param of
-qv(5.006) and the method will not run any of the tests below this
+that it must be 5.010 or higher, then you can provide a param of
+qv(5.010) and the method will not run any of the tests below this
 version. This should provide dramatic speed improvements for
 large and/or complex documents.
 
 The limitations of parsing Perl mean that this method may provide
 artificially low results, but should not artificially high results.
 
-For example, if C<minimum_syntax_version> returned 5.006, you can be
+For example, if C<minimum_syntax_version> returned 5.008, you can be
 confident it will not run on anything lower, although there is a chance
 that during actual execution it may use some untestable feature that
 creates a dependency on a higher version.
@@ -638,8 +617,6 @@ sub _experimental_bundle {
 
 my %SCHEDULED_BLOCK =
 (
-    'INIT'      => '5.006',
-    'CHECK'     => '5.006002',
     'UNITCHECK' => '5.010',
 );
 
@@ -734,42 +711,6 @@ sub _str_in_list {
 }
 
 
-sub _binmode_2_arg {
-    my ($version, $obj);
-	shift->Document->find_first( sub {
-		my $main_element=$_[1];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'binmode'       or return '';
-		return '' if is_hash_key($main_element);
-		return '' if is_method_call($main_element);
-		return '' if is_subroutine_name($main_element);
-		return '' if is_included_module_name($main_element);
-		return '' if is_package_declaration($main_element);
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments == 2 ) {
-		    my $arg2=$arguments[1][0];
-			if ( $arg2->isa('PPI::Token::Quote')) { #check second argument
-				my $str = $arg2->string;
-				$str =~ s/^\s+//s;
-				$str =~ s/\s+$//s;
-				$str =~ s/:\s+/:/g;
-				if ( !_str_in_list( $str => qw/:raw :crlf/) and $str !~ /[\$\@\%]/) {
-            		$version = 5.008;
-		            $obj = $main_element;
-					return 1;
-				}
-			}
-			if (!$version) {
-        	    $version = 5.006;
-	            $obj = $main_element;
-	        }
-		}
-		return '';
-	} );
-	return ($version, $obj);
-}
-
-
 
 #http://perldoc.perl.org/functions/readdir.html
 #while(readdir $dh) requires perl 5.12
@@ -805,44 +746,6 @@ sub _perl_5012_pragmas {
 		$_[1]->isa('PPI::Statement::Include')
 		and
 		$MATCHES{_perl_5012_pragmas}->{$_[1]->pragma}
-	} );
-}
-
-sub _open_temp {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement') or return '';
-		my @children = $_[1]->children;
-		#@children >= 7                or return '';
-		my $main_element = $children[0];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'open'       or return '';
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments == 3 and scalar(@{$arguments[2]}) == 1) {
-		    my $arg3 = $arguments[2][0];
-		    if ($arg3->isa('PPI::Token::Word') and $arg3->content eq 'undef') {
-				return 1;
-			}
-		}
-		return '';
-	} );
-}
-
-sub _open_scalar {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement') or return '';
-		my @children = $_[1]->children;
-		#@children >= 7                or return '';
-		my $main_element = $children[0];
-		$main_element->isa('PPI::Token::Word') or return '';
-		$main_element->content eq 'open'       or return '';
-		my @arguments = parse_arg_list($main_element);
-		if ( scalar @arguments == 3) {
-		    my $arg3 = $arguments[2][0];
-		    if ($arg3->isa('PPI::Token::Cast') and $arg3->content eq '\\') {
-				return 1;
-			}
-		}
-		return '';
 	} );
 }
 
@@ -911,14 +814,6 @@ sub _stacked_labels {
     } );
 }
 
-sub _internals_svreadonly {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement')
-        and ($_[1]->children)[0]->isa('PPI::Token::Word')
-        and ($_[1]->children)[0]->content eq 'Internals::SvREADONLY'
-	} );
-}
-
 sub _pkg_name_version {
 	shift->Document->find_first( sub {
 		$_[1]->isa('PPI::Statement::Package') or return '';
@@ -952,129 +847,6 @@ sub _perl_5010_magic {
 		$_[1]->isa('PPI::Token::Magic')
 		and
 		$MATCHES{_perl_5010_magic}->{$_[1]->symbol}
-	} );
-}
-
-sub _perl_5008_pragmas {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		$MATCHES{_perl_5008_pragmas}->{$_[1]->pragma}
-	} );
-}
-
-# 5.8.3: Reading $^E now preserves $!. Previously, the C code implementing $^E did not preserve errno, so reading $^E could cause errno and therefore $! to change unexpectedly.
-sub _bugfix_magic_errno {
-	my $Document = shift->Document;
-	my $element = $Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Magic')
-		and
-		$_[1]->symbol eq '$^E'
-	} ) || return undef;
-	#$^E is more rare than $!, so search for it first and return it
-	$Document->find_any( sub {
-		$_[1]->isa('PPI::Token::Magic')
-		and
-		$_[1]->symbol eq '$!'
-	} ) || return '';
-	return $element;
-}
-
-# utf8::is_utf requires 5.8.1 unlike the rest of utf8
-sub _is_utf8 {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Word') or return '';
-		$_[1] eq 'utf8::is_utf'        or return '';
-		return 1;
-	} );
-}
-
-# version->new(5.005.004);
-sub _unquoted_versions {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Token::Number')       or return '';
-		$_[1]->{_subtype}                      or return '';
-		$_[1]->{_subtype} eq 'base256'         or return '';
-		my $stmt   = $_[1]->parent             or return '';
-		my $braces = $stmt->parent             or return '';
-		$braces->isa('PPI::Structure')         or return '';
-		$braces->braces eq '()'                or return '';
-		my $new = $braces->previous_sibling    or return '';
-		$new->isa('PPI::Token::Word')          or return '';
-		$new->content eq 'new'                 or return '';
-		my $method = $new->previous_sibling    or return '';
-		$method->isa('PPI::Token::Operator')   or return '';
-		$method->content eq '->'               or return '';
-		my $_class = $method->previous_sibling or return '';
-		$_class->isa('PPI::Token::Word')       or return '';
-		$_class->content eq 'version'          or return '';
-		1;
-	} );
-}
-
-sub _pragma_utf8 {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		(
-			($_[1]->module and $_[1]->module eq 'utf8')
-			or
-			($_[1]->pragma and $_[1]->pragma eq 'utf8')
-		)
-		# This used to be just pragma(), but that was buggy in PPI v1.118
-	} );
-}
-
-# Check for the use of 'use constant { ... }'
-sub _constant_hash {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include')
-		and
-		$_[1]->type
-		and
-		$_[1]->type eq 'use'
-		and
-		$_[1]->module eq 'constant'
-		and
-		$_[1]->schild(2)->isa('PPI::Structure')
-	} );
-}
-
-# You can't localize a soft reference
-sub _local_soft_reference {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Variable')  or return '';
-		$_[1]->type eq 'local'                  or return '';
-
-		# The second child should be a '$' cast.
-		my @child = $_[1]->schildren;
-		scalar(@child) >= 2                     or return '';
-		$child[1]->isa('PPI::Token::Cast')      or return '';
-		$child[1]->content eq '$'               or return '';
-
-		# The third child should be a block
-		$child[2]->isa('PPI::Structure::Block') or return '';
-
-		# Inside the block should be a string in a statement
-		my $statement = $child[2]->schild(0)    or return '';
-		$statement->isa('PPI::Statement')       or return '';
-		my $inside = $statement->schild(0)      or return '';
-		$inside->isa('PPI::Token::Quote')       or return '';
-
-		# This is indeed a localized soft reference
-		return 1;
-	} );
-}
-
-# Carp.pm did not have a $VERSION in 5.6.2
-# Therefore, even "use Carp 0" imposes a 5.8.0 dependency.
-sub _use_carp_version {
-	shift->Document->find_first( sub {
-		$_[1]->isa('PPI::Statement::Include') or return '';
-		$_[1]->module eq 'Carp'               or return '';
-
-		my $version = $_[1]->module_version;
-		return !! ( defined $version and length "$version" );
 	} );
 }
 

@@ -8,7 +8,7 @@ BEGIN {
 	$^W = 1;
 }
 
-use Test::More 0.47 tests => 90;
+use Test::More 0.47 tests => 82;
 use version 0.76;
 use File::Spec::Functions ':ALL';
 use PPI 1.215;
@@ -109,10 +109,10 @@ SCOPE: {
 
 # Check with a complex explicit
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.008', 'explicit versions are detected' );
+my $v = version_is( <<'END_PERL', '5.012', 'explicit versions are detected' );
 sub foo : attribute { 1 };
-require 5.006;
-use 5.008;
+require 5.010;
+use 5.012;
 END_PERL
 }
 
@@ -134,7 +134,7 @@ END_PERL
 
 # Regression: binary
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.006', 'binary' );
+my $v = version_is( <<'END_PERL', '5.008', 'binary' );
 $c=0b10000001;
 1;
 END_PERL
@@ -152,7 +152,7 @@ END_PERL
 
 # Check regular use of constants
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.006', 'normal constant use has no dep' );
+my $v = version_is( <<'END_PERL', '5.008', 'normal constant use has no dep' );
 use constant FOO => 1;
 1;
 END_PERL
@@ -166,24 +166,6 @@ END_PERL
 ok( $v->_perl_5010_pragmas, '->_perl_5010_pragmas returns true' );
 }
 
-# Check the localized soft refernence pragma
-SCOPE: {
-my $v = version_is( <<'END_PERL', '5.008', 'Localized soft reference matched expected version' );
-local ${ "${class}::DIE" } = 1;
-END_PERL
-ok( $v->_local_soft_reference, '->_local_soft_reference returns true' );
-}
-
-
-# Check $^E + $!
-SCOPE: {
-my $v = version_is( <<'END_PERL', '5.008.003', '$^E + $!' );
-$! + $^E;
-END_PERL
-is( $v->_bugfix_magic_errno->symbol, '$^E','->_bugfix_magic_errno returns $^E' );
-}
-
-
 
 # Check that minimum_syntax_version's limit param is respected
 SCOPE: {
@@ -192,12 +174,12 @@ my $minver = Perl::MinimumVersion->new($doc);
 is(
   $minver->minimum_syntax_version,
   '5.010',
-  "5.006 syntax found when no limit supplied",
+  "5.010 syntax found when no limit supplied",
 );
 is(
   $minver->minimum_syntax_version(5.008),
   '5.010',
-  "5.006 syntax found when 5.005 limit supplied",
+  "5.010 syntax found when 5.008 limit supplied",
 );
 is(
   $minver->minimum_syntax_version(version->new(5.018)),
@@ -232,12 +214,12 @@ END_PERL
 
 # Check regexes
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.006', '\z in regex matches expected version' );
+my $v = version_is( <<'END_PERL', '5.008', '\z in regex matches expected version' );
 m/a\z/
 END_PERL
 }
 SCOPE: {
-my $v = version_is( <<'END_PERL', '5.006', '\z along with newer feature' );
+my $v = version_is( <<'END_PERL', '5.008', '\z along with newer feature' );
 m/a\z/;open A,'<','test.txt';
 END_PERL
 }

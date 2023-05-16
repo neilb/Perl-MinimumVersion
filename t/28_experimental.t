@@ -9,7 +9,7 @@ use Perl::MinimumVersion;
 
 my %examples=(
     q{use experimental 'signatures'; } => '5.020',
-    q{use experimental; } => '5.006',
+    q{use experimental; } => '5.008',
 );
 
 plan tests => scalar keys %examples;
