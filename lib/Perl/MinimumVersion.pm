@@ -707,14 +707,14 @@ sub _scheduled_blocks
 
 sub _regex {
 	my $self = shift;
-    my @versions;
-    my ($version, $obj);
+	my @versions;
+	my ($version, $obj);
 	$self->Document->find( sub {
-	    return '' unless
+		return '' unless
 			grep { $_[1]->isa($_) }
 			qw/PPI::Token::QuoteLike::Regexp PPI::Token::Regexp::Match PPI::Token::Regexp::Substitute/;
 			my $re = PPIx::Regexp->new( $_[1] );
-        	my $v = $re->perl_version_introduced;
+			my $v = $re->perl_version_introduced;
 			if ($v and $v > ($version || 0) ) {
 				$version = $v;
 				$obj = $_[1];
@@ -723,7 +723,7 @@ sub _regex {
 	} );
 	my $tr_r_version = version->new('5.013.007');
 	$self->Document->find( sub {
-	    return '' unless
+		return '' unless
 			$_[1]->isa(q/PPI::Token::Regexp::Transliterate/);
 			if( exists $_[1]->get_modifiers->{r}
 				&& $tr_r_version > ( $version || 0 )
