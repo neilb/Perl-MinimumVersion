@@ -883,10 +883,15 @@ sub _re_flags {
 		my $included = $_[1]->schild(2);
 		my @literal = $included->can('literal') ? $included->literal() : $included->string();
 		my $v = "5.005";
-		my @flags = grep {index($_, '/') == 0} @literal;
-		$v = '5.014' if scalar @flags;
-		#Check for /xx flag which was introduced in Perl 5.026
-		$v = '5.026' if grep {my $x = index($_, "x");$x > -1 and index($_, "x", $x+1) > -1} @flags;
+		my $mod;
+		for (@literal) {
+			$mod = PPIx::Regexp::Token::Modifier->__new($_,
+				tokenizer => PPIx::Regexp::Tokenizer->new($_[0]->filename() // $_[0]->content()));
+			if (defined($mod) && $mod->perl_version_introduced > $v)
+			{
+				$v = $mod->perl_version_introduced;
+			}
+		}
 		if ($v and $v > ($version || 0) ) {
 			$version = $v;
 			$obj = $_[1];
