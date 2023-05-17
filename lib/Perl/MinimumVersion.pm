@@ -82,8 +82,8 @@ BEGIN {
 		_state_declaration      => version->new('5.010'),
 	);
 	@CHECKS_RV = ( #subs that return version
-	    '_feature_bundle','_regex','_each_argument',,
-        '_scheduled_blocks', '_experimental_bundle'
+	    '_feature_bundle','_regex','_each_argument',
+        '_scheduled_blocks', '_experimental_bundle', '_re_flags'
 	);
 
 	# Predefine some indexes needed by various check methods
@@ -871,6 +871,29 @@ sub _perl_5010_magic {
 		and
 		$MATCHES{_perl_5010_magic}->{$_[1]->symbol}
 	} );
+}
+
+#Check for use re "/flags";
+sub _re_flags {
+	my ($version, $obj);
+	shift->Document->find( sub {
+		return '' unless $_[1]->isa('PPI::Statement::Include')
+			and ($_[1]->module eq 're' or $_[1]->pragma eq 're');
+		my $included = $_[1]->schild(2);
+		my @literal = $included->can('literal') ? $included->literal() : $included->string();
+		my $v = "5.005";
+		my @flags = grep {index($_, '/') == 0} @literal;
+		$v = '5.014' if scalar @flags;
+		#Check for /xx flag which was introduced in Perl 5.026
+		$v = '5.026' if grep {my $x = index($_, "x");$x > -1 and index($_, "x", $x+1) > -1} @flags;
+		if ($v and $v > ($version || 0) ) {
+			$version = $v;
+			$obj = $_[1];
+		}
+
+	} );
+	$version = undef if ($version and $version eq '5.000');
+	return ($version, $obj);
 }
 
 #####################################################################
