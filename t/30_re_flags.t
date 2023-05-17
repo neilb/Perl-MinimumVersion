@@ -12,8 +12,8 @@ my %examples=(
     q{use re "/mxsx"; } => '5.026',
     q{use re "debug"; } => '5.005',
     q{use re; } => '5.005',
-    q{use re qw(taint /xx); } => '5.026',
-    q{use re qw(taint /x); } => '5.005',
+    q{use re qw(taint /xx); } => '5.014',
+    q{use re qw(taint /x); } => '5.014',
     q{use re "/x"} => '5.014'
 );
 

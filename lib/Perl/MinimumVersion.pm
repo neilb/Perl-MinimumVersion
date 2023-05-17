@@ -55,7 +55,8 @@ use PPIx::Utils                 qw{
 	:classification
 	:traversal
 };
-use PPIx::Regexp        0.033;
+use PPIx::Regexp        0.051;
+use PPIx::Regexp::Token::Modifier;
 use Perl::MinimumVersion::Reason ();
 
 our (@ISA, @EXPORT_OK, %CHECKS, @CHECKS_RV ,%MATCHES);
