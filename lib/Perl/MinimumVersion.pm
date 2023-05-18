@@ -70,6 +70,7 @@ BEGIN {
 
         # _stacked_labels         => version->new('5.014'),
 
+		_postfix_deref		=> version->new('5.020'),
 		_yada_yada_yada         => version->new('5.012'),
 		_pkg_name_version       => version->new('5.012'),
 		_postfix_when           => version->new('5.012'),
@@ -879,6 +880,85 @@ sub _heredoc_indent {
 		$main_element->content =~ /^\Q<<~\E/ or return '';
 		return 1;
 	});
+}
+
+# Postfix dereference new (and experimental) in 5.20.
+sub _postfix_deref {
+	shift->Document->find_first( sub {
+		my $main_element=$_[1];
+		$main_element->isa('PPI::Token::Symbol') or return '';
+		(_get_resulting_sigil($main_element) || '') eq '$'
+			or return '';
+		my $operator = $main_element->snext_sibling()
+			or return '';
+		return '' unless
+			$operator->isa( 'PPI::Token::Operator' ) &&
+			$operator->content() eq '->';
+		my $next = $operator->snext_sibling()
+			or return '';
+		my $content = $next->content();
+		# FIXME: The below Byzantine mess could be considerably
+		# simplified if we could rely on a PPI that supported
+		# postfix dereferencing. My read of PPI's Changes file
+		# says this is 1.238, which is considerably ahead of
+		# Perl-MinimumVersion's requirement of PPI 1.215. -- trwyant
+		foreach my $check (
+			sub {
+				return '' unless $_[0]->isa( 'PPI::Token::Cast' );
+				# $*, @*, , etc, modern parse
+				{ '$*' => 1, '@*', => 1, '%*' => 1, '&*' => 1, '**' => 1, '$#*' => 1, }->{$_[1]}
+				    and return 1;
+				my $next = $_[0]->snext_sibling()
+					or return '';
+				if ( $next->isa( 'PPI::Structure::Subscript' ) ) {
+				    # @[...], etc, modern parse
+				    return { '@' => 1, '%' => 1 }->{$_[1]};
+				} elsif ( $next->isa( 'PPI::Structure::Constructor' ) ) {
+					# @[...], @{...}, %[...], %{...}
+					# NOTE it would be nice if all the above in
+					# fact came through here. But actually only
+					# @[...] does -- the rest are defensive code
+					# in case PPI's parse changes.
+					return { '@' => 1, '%' => 1 }->{$_[1]};
+				} elsif ( $next->isa( 'PPI::Structure::Block' ) ) {
+					# @{...}, %{...} with PPI 1.236
+					return { '@' => 1, '%' => 1 }->{$_[1]};
+				} elsif ( $next->isa( 'PPI::Token::Operator' ) &&
+					$next->content() eq '*' ) {
+					# %*, &*
+					return { '%' => 1, '&' => 1 }->{$_[1]};
+				}
+				return '';
+			},
+			sub {	# $*, @*
+				$_[0]->isa( 'PPI::Token::Magic' ) &&
+					{ '$*' => 1, '@*' => 1 }->{$_[1]}
+			},
+			sub {
+				return '' unless $_[0]->isa( 'PPI::Token::Operator' );
+				# %[...] with PPI 1.236
+				if ( $_[1] eq '%' ) {
+					my $next = $_[0]->snext_sibling()
+					    or return '';
+					return $next->isa( 'PPI::Structure::Constructor' );
+				}
+				# **
+				return $_[1] eq '**';
+			},
+			sub {	# $#*
+				return '' unless $_[0]->isa( 'PPI::Token::Magic' ) &&
+					$_[1] eq '$#';
+				my $next = $_[0]->snext_sibling()
+					or return '';
+				return $next->isa( 'PPI::Token::Operator' ) &&
+					$next->content() eq '*';
+			},
+		) {
+			return 1 if $check->( $next, $content );
+		}
+
+		return '';
+	} );
 }
 
 sub _postfix_when {
