@@ -68,7 +68,7 @@ BEGIN {
 	%CHECKS = (
 		_heredoc_indent         => version->new('5.025.007'),
 
-        # _stacked_labels         => version->new('5.014'),
+		# _stacked_labels         => version->new('5.014'),
 
 		_yada_yada_yada         => version->new('5.012'),
 		_pkg_name_version       => version->new('5.012'),
@@ -97,8 +97,8 @@ BEGIN {
 		_pragma_utf8            => version->new('5.008'),
 	);
 	@CHECKS_RV = ( #subs that return version
-	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
-        '_scheduled_blocks', '_experimental_bundle'
+		'_feature_bundle','_regex','_each_argument','_binmode_2_arg',
+		'_scheduled_blocks', '_experimental_bundle'
 	);
 
 	# Predefine some indexes needed by various check methods
@@ -418,12 +418,12 @@ sub _minimum_syntax_version {
 				version => $v,
 				element => _INSTANCE($obj, 'PPI::Element'),
 			);
-		    if ($self->{_collect_all_reasons}) {
+			if ($self->{_collect_all_reasons}) {
 				push @{ $self->{_all_reasons} }, $current_reason;
 			} else {
 				$filter = $v;
 			}
-	    }
+		}
 	}
 
 
@@ -433,7 +433,7 @@ sub _minimum_syntax_version {
 	my @rules = sort {
 		$CHECKS{$b} <=> $CHECKS{$a}
 	} grep {
-	    not(exists $checks2skip{$_}) and $CHECKS{$_} > $filter
+		not(exists $checks2skip{$_}) and $CHECKS{$_} > $filter
 	} keys %CHECKS;
 
 	foreach my $rule ( @rules ) {
@@ -540,41 +540,41 @@ sub version_markers {
 
 my %feature =
 (
-    'say'               => '5.10',
-    'smartmatch'        => '5.10',
-    'state'             => '5.10',
-    'switch'            => '5.10',
-    'unicode_strings'   => '5.14',
-    'unicode_eval'      => '5.16',
-    'evalbytes'         => '5.16',
-    'current_sub'       => '5.16',
-    'array_base'        => '5.16', #defined only in 5.16
-    'fc'                => '5.16',
-    'lexical_subs'      => '5.18',
-    'postderef'         => '5.20',
-    'postderef_qq'      => '5.20',
-    'signatures'        => '5.20',
-    'refaliasing'       => '5.22',
-    'bitwise'           => '5.22',
-    'declared_refs'     => '5.26',
-    'isa'               => '5.32',
-    'indirect'          => '5.32', #defined only in 5.32
+	'say'               => '5.10',
+	'smartmatch'        => '5.10',
+	'state'             => '5.10',
+	'switch'            => '5.10',
+	'unicode_strings'   => '5.14',
+	'unicode_eval'      => '5.16',
+	'evalbytes'         => '5.16',
+	'current_sub'       => '5.16',
+	'array_base'        => '5.16', #defined only in 5.16
+	'fc'                => '5.16',
+	'lexical_subs'      => '5.18',
+	'postderef'         => '5.20',
+	'postderef_qq'      => '5.20',
+	'signatures'        => '5.20',
+	'refaliasing'       => '5.22',
+	'bitwise'           => '5.22',
+	'declared_refs'     => '5.26',
+	'isa'               => '5.32',
+	'indirect'          => '5.32', #defined only in 5.32
 );
 my $feature_regexp = join('|', keys %feature);
 
 #:5.14 means same as :5.12, but :5.14 is not defined in feature.pm in perl 5.12.
 sub _feature_bundle {
-    my @versions;
-    my ($version, $obj);
+	my @versions;
+	my ($version, $obj);
 	shift->Document->find( sub {
 		$_[1]->isa('PPI::Statement::Include') or return '';
 		$_[1]->pragma eq 'feature'            or return '';
 		my @child = $_[1]->schildren;
 		my @args = @child[1..$#child]; # skip 'use', 'feature' and ';'
 		foreach my $arg (@args) {
-		    my $v = 0;
-		    $v = $1 if ($arg->content =~ /:(5\.\d+)(?:\.\d+)?/);
-		    $v = max($v, $feature{$1}) if ($arg->content =~ /\b($feature_regexp)\b/);
+			my $v = 0;
+			$v = $1 if ($arg->content =~ /:(5\.\d+)(?:\.\d+)?/);
+			$v = max($v, $feature{$1}) if ($arg->content =~ /\b($feature_regexp)\b/);
 			#
 			if ($v and $v > ($version || 0) ) {
 				$version = $v;
@@ -589,78 +589,78 @@ sub _feature_bundle {
 # list copied from experimental.pm v0.021 itself
 my %experimental =
 (
-    array_base      => '5',
-    autoderef       => '5.14',
-    bitwise         => '5.22',
-    const_attr      => '5.22',
-    current_sub     => '5.16',
-    declared_refs   => '5.26',
-    evalbytes       => '5.16',
-    fc              => '5.16',
-    isa             => '5.32',
-    lexical_topic   => '5.10',
-    lexical_subs    => '5.18',
-    postderef       => '5.20',
-    postderef_qq    => '5.20',
-    refaliasing     => '5.22',
-    regex_sets      => '5.18',
-    say             => '5.10',
-    smartmatch      => '5.10',
-    signatures      => '5.20',
-    state           => '5.10',
-    switch          => '5.10',
-    unicode_eval    => '5.16',
-    unicode_strings => '5.12',
+	array_base      => '5',
+	autoderef       => '5.14',
+	bitwise         => '5.22',
+	const_attr      => '5.22',
+	current_sub     => '5.16',
+	declared_refs   => '5.26',
+	evalbytes       => '5.16',
+	fc              => '5.16',
+	isa             => '5.32',
+	lexical_topic   => '5.10',
+	lexical_subs    => '5.18',
+	postderef       => '5.20',
+	postderef_qq    => '5.20',
+	refaliasing     => '5.22',
+	regex_sets      => '5.18',
+	say             => '5.10',
+	smartmatch      => '5.10',
+	signatures      => '5.20',
+	state           => '5.10',
+	switch          => '5.10',
+	unicode_eval    => '5.16',
+	unicode_strings => '5.12',
 );
 my $experimental_regexp = join('|', keys %experimental);
 sub _experimental_bundle {
-    my ($version, $obj);
+	my ($version, $obj);
 
-    shift->Document->find( sub {
-        return '' unless $_[1]->isa('PPI::Statement::Include') 
-                     and $_[1]->pragma eq 'experimental';
+	shift->Document->find( sub {
+		return '' unless $_[1]->isa('PPI::Statement::Include')
+			and $_[1]->pragma eq 'experimental';
 
-        my @child = $_[1]->schildren;
-        my @args = @child[1..$#child]; # skip 'use', 'experimental' and ';'
-        foreach my $arg (@args) {
-            my $v = 0;
-            $v = $1 if ($arg->content =~ /:(5\.\d+)(?:\.\d+)?/);
-            $v = max($v, $experimental{$1}) if ($arg->content =~ /\b($experimental_regexp)\b/);
+		my @child = $_[1]->schildren;
+		my @args = @child[1..$#child]; # skip 'use', 'experimental' and ';'
+		foreach my $arg (@args) {
+			my $v = 0;
+			$v = $1 if ($arg->content =~ /:(5\.\d+)(?:\.\d+)?/);
+			$v = max($v, $experimental{$1}) if ($arg->content =~ /\b($experimental_regexp)\b/);
 
-            if ($v and $v > ($version || 0) ) {
-                $version = $v;
-                $obj = $_[1];
-            }
-        }
-        return '';
-    } );
+			if ($v and $v > ($version || 0) ) {
+				$version = $v;
+				$obj = $_[1];
+			}
+		}
+		return '';
+	} );
 
-    return (defined($version)?"$version.0":undef, $obj);
+	return (defined($version)?"$version.0":undef, $obj);
 }
 
 my %SCHEDULED_BLOCK =
 (
-    'INIT'      => '5.006',
-    'CHECK'     => '5.006002',
-    'UNITCHECK' => '5.010',
+	'INIT'      => '5.006',
+	'CHECK'     => '5.006002',
+	'UNITCHECK' => '5.010',
 );
 
 sub _scheduled_blocks
 {
-    my @versions;
-    my ($version, $obj);
+	my @versions;
+	my ($version, $obj);
 
 	shift->Document->find( sub {
 		$_[1]->isa('PPI::Statement::Scheduled') or return '';
-        ($_[1]->children)[0]->isa('PPI::Token::Word') or return '';
-        my $function = (($_[1]->children)[0])->content;
-        exists( $SCHEDULED_BLOCK{ $function }) or return '';
+		($_[1]->children)[0]->isa('PPI::Token::Word') or return '';
+		my $function = (($_[1]->children)[0])->content;
+		exists( $SCHEDULED_BLOCK{ $function }) or return '';
 
-        my $v = $SCHEDULED_BLOCK{ ($_[1]->children)[0]->content };
-        if ($v and $v > ($version || 0) ) {
-            $version = $v;
-            $obj = $_[1];
-        }
+		my $v = $SCHEDULED_BLOCK{ ($_[1]->children)[0]->content };
+		if ($v and $v > ($version || 0) ) {
+			$version = $v;
+			$obj = $_[1];
+		}
 
 		return '';
 	} );
@@ -700,7 +700,7 @@ sub _regex {
 }
 
 sub _each_argument {
-    my ($version, $obj);
+	my ($version, $obj);
 	shift->Document->find( sub {
 		$_[1]->isa('PPI::Token::Word') or return '';
 		$_[1]->content =~ '^(each|keys|values)$'  or return '';
@@ -750,7 +750,7 @@ sub _str_in_list {
 
 
 sub _binmode_2_arg {
-    my ($version, $obj);
+	my ($version, $obj);
 	shift->Document->find_first( sub {
 		my $main_element=$_[1];
 		$main_element->isa('PPI::Token::Word') or return '';
@@ -762,22 +762,22 @@ sub _binmode_2_arg {
 		return '' if is_package_declaration($main_element);
 		my @arguments = parse_arg_list($main_element);
 		if ( scalar @arguments == 2 ) {
-		    my $arg2=$arguments[1][0];
+			my $arg2=$arguments[1][0];
 			if ( $arg2->isa('PPI::Token::Quote')) { #check second argument
 				my $str = $arg2->string;
 				$str =~ s/^\s+//s;
 				$str =~ s/\s+$//s;
 				$str =~ s/:\s+/:/g;
 				if ( !_str_in_list( $str => qw/:raw :crlf/) and $str !~ /[\$\@\%]/) {
-            		$version = 5.008;
-		            $obj = $main_element;
+					$version = 5.008;
+					$obj = $main_element;
 					return 1;
 				}
 			}
 			if (!$version) {
-        	    $version = 5.006;
-	            $obj = $main_element;
-	        }
+				$version = 5.006;
+				$obj = $main_element;
+			}
 		}
 		return '';
 	} );
@@ -801,7 +801,7 @@ sub _while_readdir {
 		}
 		$e1->isa('PPI::Statement::Expression') or return '';
 		my @children = $e1->schildren;
-	    $e1 = $children[0];
+		$e1 = $children[0];
 
 		$e1->isa('PPI::Token::Word') or return '';
 		$e1->content eq 'readdir' or return '';
@@ -833,8 +833,8 @@ sub _open_temp {
 		$main_element->content eq 'open'       or return '';
 		my @arguments = parse_arg_list($main_element);
 		if ( scalar @arguments == 3 and scalar(@{$arguments[2]}) == 1) {
-		    my $arg3 = $arguments[2][0];
-		    if ($arg3->isa('PPI::Token::Word') and $arg3->content eq 'undef') {
+			my $arg3 = $arguments[2][0];
+			if ($arg3->isa('PPI::Token::Word') and $arg3->content eq 'undef') {
 				return 1;
 			}
 		}
@@ -852,8 +852,8 @@ sub _open_scalar {
 		$main_element->content eq 'open'       or return '';
 		my @arguments = parse_arg_list($main_element);
 		if ( scalar @arguments == 3) {
-		    my $arg3 = $arguments[2][0];
-		    if ($arg3->isa('PPI::Token::Cast') and $arg3->content eq '\\') {
+			my $arg3 = $arguments[2][0];
+			if ($arg3->isa('PPI::Token::Cast') and $arg3->content eq '\\') {
 				return 1;
 			}
 		}
@@ -913,8 +913,8 @@ sub _yada_yada_yada {
 sub _state_declaration {
 	shift->Document->find_first( sub {
 		$_[1]->isa('PPI::Statement::Variable')
-        and ($_[1]->children)[0]->isa('PPI::Token::Word')
-        and ($_[1]->children)[0]->content eq 'state'
+		and ($_[1]->children)[0]->isa('PPI::Token::Word')
+		and ($_[1]->children)[0]->content eq 'state'
 	} );
 }
 
@@ -925,20 +925,20 @@ sub _stacked_labels {
 
 		my $next = $_[1]->snext_sibling || return '';
 
-        if (   $next->isa('PPI::Statement::Compound')
-            && $next->schild(0)->isa('PPI::Token::Label')) {
-            return 1;
-        }
+		if (   $next->isa('PPI::Statement::Compound')
+			&& $next->schild(0)->isa('PPI::Token::Label')) {
+			return 1;
+		}
 
-        0;
-    } );
+		0;
+	} );
 }
 
 sub _internals_svreadonly {
 	shift->Document->find_first( sub {
 		$_[1]->isa('PPI::Statement')
-        and ($_[1]->children)[0]->isa('PPI::Token::Word')
-        and ($_[1]->children)[0]->content eq 'Internals::SvREADONLY'
+		and ($_[1]->children)[0]->isa('PPI::Token::Word')
+		and ($_[1]->children)[0]->content eq 'Internals::SvREADONLY'
 	} );
 }
 
