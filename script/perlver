@@ -404,15 +404,27 @@ sub dist ($) {
 
 =head1 SUPPORT
 
-All bugs should be filed via the bug tracker at
+Bugs can be filed via the CPAN or GitHub bug trackers:
+
+=over
+
+=item *
 
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Perl-MinimumVersion>
 
-For other issues, or commercial enhancement and support, contact the author
+=item *
+
+L<https://github.com/neilb/Perl-MinimumVersion/issues>
+
+=back
+
+For other issues, or commercial enhancement or support, contact the author.
 
 =head1 AUTHORS
 
-Adam Kennedy <adamk@cpan.org>
+Adam Kennedy E<lt>adamk@cpan.orgE<gt>
+
+Neil Bowers E<lt>neil@bowers.comE<gt>
 
 =head1 SEE ALSO
 
@@ -420,7 +432,8 @@ L<PPI>, L<Perl::MinimumVersion>
 
 =head1 COPYRIGHT
 
-Copyright 2005 - 2012 Adam Kennedy.
+Copyright 2005 - 2014 Adam Kennedy.
+Copyright 2015 - 2023 Neil Bowers and contributors.
 
 This program is free software; you can redistribute
 it and/or modify it under the same terms as Perl itself.
