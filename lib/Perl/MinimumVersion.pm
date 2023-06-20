@@ -50,7 +50,7 @@ use Exporter                    ();
 use List::Util          1.20    qw(max first);
 use Params::Util        0.25    ('_INSTANCE', '_CLASS');
 use PPI::Util                   ('_Document');
-use PPI                 1.215   ();
+use PPI                 1.252   ();
 use PPIx::Utils                 qw{
 	:classification
 	:traversal
@@ -70,6 +70,7 @@ BEGIN {
 
         # _stacked_labels         => version->new('5.014'),
 
+		_double_diamond_operator => version->new('5.021.005'),
 		_yada_yada_yada         => version->new('5.012'),
 		_pkg_name_version       => version->new('5.012'),
 		_postfix_when           => version->new('5.012'),
@@ -1098,6 +1099,16 @@ sub _use_carp_version {
 
 		my $version = $_[1]->module_version;
 		return !! ( defined $version and length "$version" );
+	} );
+}
+
+# Double-diamond operator.
+# Detecting this requires at least PPI 1.252
+sub _double_diamond_operator {
+	shift->Document->find_first( sub {
+		$_[1]->isa('PPI::Token::QuoteLike::Readline') or return '';
+		$_[1]->content eq '<<>>'		or return '';
+		return 1;
 	} );
 }
 

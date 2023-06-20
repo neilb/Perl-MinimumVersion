@@ -11,7 +11,7 @@ BEGIN {
 use Test::More 0.47 tests => 90;
 use version 0.76;
 use File::Spec::Functions ':ALL';
-use PPI 1.215;
+use PPI 1.252;
 use Perl::MinimumVersion 'PMV';
 
 sub version_is {
