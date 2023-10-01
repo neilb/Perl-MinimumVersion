@@ -66,12 +66,12 @@ BEGIN {
 
 	# The primary list of version checks
 	%CHECKS = (
-		_heredoc_indent         => version->new('5.025.007'),
+		_heredoc_indent          => version->new('5.025.007'),
+		_double_diamond_operator => version->new('5.021.005'),
+		_postfix_deref           => version->new('5.020'),
 
         # _stacked_labels         => version->new('5.014'),
 
-		_postfix_deref		=> version->new('5.020'),
-		_double_diamond_operator => version->new('5.021.005'),
 		_yada_yada_yada         => version->new('5.012'),
 		_pkg_name_version       => version->new('5.012'),
 		_postfix_when           => version->new('5.012'),
