@@ -1,5 +1,13 @@
 Revision history for Perl module Perl::MinimumVersion
 
+1.42 2023-09-30 (TRIAL RELEASE)
+    - Restore detection for Perl version 5.008, which means that 5.006 is now the minimum
+      required version that will be reported.
+    - Recognize the minimum required Perl versions for:
+      - the "use re '/flags'" pragma (GH#29)
+      - postfix dereferences (GH#30)
+      - the <<>> operator (GH#31)
+
 1.41 2023-05-17 (TRIAL RELEASE)
     - Remove detection for Perl versions 5.008 and older. This means that 5.008 is now the
       minimum required version that will be reported. (GH#7)
