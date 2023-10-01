@@ -55,7 +55,7 @@ use PPIx::Utils                 qw{
 	:classification
 	:traversal
 };
-use PPIx::Regexp        0.033;
+use PPIx::Regexp        0.051;
 use Perl::MinimumVersion::Reason ();
 
 our (@ISA, @EXPORT_OK, %CHECKS, @CHECKS_RV ,%MATCHES);
@@ -71,6 +71,7 @@ BEGIN {
         # _stacked_labels         => version->new('5.014'),
 
 		_double_diamond_operator => version->new('5.021.005'),
+		_postfix_deref		=> version->new('5.020'),
 		_yada_yada_yada         => version->new('5.012'),
 		_pkg_name_version       => version->new('5.012'),
 		_postfix_when           => version->new('5.012'),
@@ -98,8 +99,8 @@ BEGIN {
 		_pragma_utf8            => version->new('5.008'),
 	);
 	@CHECKS_RV = ( #subs that return version
-	    '_feature_bundle','_regex','_each_argument','_binmode_2_arg',
-        '_scheduled_blocks', '_experimental_bundle'
+		'_feature_bundle', '_regex', '_re_flags', '_each_argument', '_binmode_2_arg',
+		'_scheduled_blocks', '_experimental_bundle',
 	);
 
 	# Predefine some indexes needed by various check methods
@@ -700,6 +701,31 @@ sub _regex {
 	return ($version, $obj);
 }
 
+# Check for use re "/flags";
+sub _re_flags {
+	my ($version, $obj);
+	shift->Document->find( sub {
+		return '' unless $_[1]->isa('PPI::Statement::Include')
+			and ($_[1]->module eq 're' or $_[1]->pragma eq 're');
+		my $included = $_[1]->schild(2);
+		my @literal = $included->can('literal') ? $included->literal() : $included->string();
+		my $v = "5.005";
+		my @flags = grep {index($_, '/') == 0} @literal;
+		$v = '5.014' if @flags;
+		$v = max $v, map {
+			my $empty_regex_w_flag = "/$_";
+			PPIx::Regexp->new( $empty_regex_w_flag )->perl_version_introduced;
+		} @flags;
+		if ($v and $v > ($version || 0) ) {
+			$version = $v;
+			$obj = $_[1];
+		}
+
+	} );
+	$version = undef if ($version and $version eq '5.000');
+	return ($version, $obj);
+}
+
 sub _each_argument {
     my ($version, $obj);
 	shift->Document->find( sub {
@@ -880,6 +906,50 @@ sub _heredoc_indent {
 		$main_element->content =~ /^\Q<<~\E/ or return '';
 		return 1;
 	});
+}
+
+# Postfix dereference new (and experimental) in 5.20, mainstream in 5.24.
+# THIS CODE ASSUMES PPI 1.237_001 OR ABOVE -- i.e. support for postfix
+# dereferencing.
+#
+my %postfix_deref = (
+	'$*'	=> \&_postfix_deref_entire,
+	'@*'	=> \&_postfix_deref_entire,
+	'$#*'	=> \&_postfix_deref_entire,
+	'%*'	=> \&_postfix_deref_entire,
+	'&*'	=> \&_postfix_deref_entire,
+	'**'	=> \&_postfix_deref_entire,
+	'@'	=> \&_postfix_deref_slice,
+	'%'	=> \&_postfix_deref_slice,
+);
+
+sub _postfix_deref_slice {
+	my ( $elem ) = @_;
+	my $next = $elem->snext_sibling()
+		or return;
+	return $next->isa( 'PPI::Structure::Subscript' );
+}
+
+sub _postfix_deref_entire {
+	return 1;
+}
+
+sub _postfix_deref {
+	shift->Document->find_first( sub {
+		my $main_element=$_[1];
+		$main_element->isa('PPI::Token::Cast') or return '';
+		my $prev = $main_element->sprevious_sibling()
+			or return '';
+		return '' unless $prev->isa('PPI::Token::Operator') &&
+			$prev->content() eq '->';
+		$prev = $prev->sprevious_sibling()
+			or return '';
+		return '' unless $prev->isa('PPI::Token::Symbol') &&
+			(_get_resulting_sigil($prev) || '') eq '$';
+		my $code = $postfix_deref{ $main_element->content() }
+			or return '';
+		return $code->( $main_element ) || '';
+	} );
 }
 
 sub _postfix_when {
