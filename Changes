@@ -1,5 +1,9 @@
 Revision history for Perl module Perl::MinimumVersion
 
+1.43 2025-05-04
+    - Update LICENSE text
+    - Promoting trial changes to stable release
+
 1.42 2023-09-30 (TRIAL RELEASE)
     - Restore detection for Perl version 5.008, which means that 5.006 is now the minimum
       required version that will be reported.
