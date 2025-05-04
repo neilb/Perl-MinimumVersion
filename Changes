@@ -1,5 +1,8 @@
 Revision history for Perl module Perl::MinimumVersion
 
+1.44 2025-05-04
+    - Update LICENSE text (for real this time)
+
 1.43 2025-05-04
     - Update LICENSE text
     - Promoting trial changes to stable release
